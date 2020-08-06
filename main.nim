@@ -1,23 +1,28 @@
 import os
 import colors
+import cmd
+import ui
 
 
 proc main(): int =
-    echo os.getCurrentDir()
-    for kind, file in os.walkDir(os.getCurrentDir()):
-        if kind == PathComponent.pcFile:
-            stdout.write(colors.blue & "f  ")
-        if kind == PathComponent.pcDir:
-            stdout.write(colors.blue & "d  " & colors.italic)
-        if kind == PathComponent.pcLinkToDir:
-            stdout.write(colors.blue & "ld " & colors.bold)
-        if kind == PathComponent.pcLinkToFile:
-            stdout.write(colors.blue & "lf " & colors.bold)
-        if os.isHidden(file):
-            stdout.write(colors.grey)
-        var path: tuple = file.splitPath()
-        echo (path[1] & colors.reset)
+    setStdIoUnbuffered()
+    var target: string = os.getCurrentDir()
+    if paramCount() >= 1:
+        target = paramStr(1)
+    try:
+        os.setCurrentDir(target)
+    except OSError:
+        echo getCurrentExceptionMsg()
+        return 2
+    colors.toAltScreen()
+    ui.show(target)
+    while true:
+        var ret: string = cmd.process_command(cmd.get_cmd())
+        if ret == "exit":
+            break
+        echo ret
 
 
 if isMainModule:
-    discard main()
+    var exitCode: cint = main().int32
+    discard os.exitStatusLikeShell(exitCode)

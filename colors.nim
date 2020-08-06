@@ -1,50 +1,5 @@
-proc position*(line: int, column: int): void = 
-    ## Move cursor to specified position
-    echo("\33[", $line, ";", $column, "f")
+import os
 
-
-proc up*(lines: int): void = 
-    ## Move cursor up specified number of lines
-    echo("\33[", $lines, "A")
-
-
-proc down*(lines: int): void = 
-    ## Move cursor down specified number of lines
-    echo("\33[", $lines, "B")
-
-
-proc left*(columns: int): void = 
-    ## Move cursor left specified number of columns
-    echo("\33[", $columns, "C")
-
-
-proc right*(columns: int): void =
-    ## Move cursor right specified number of columns
-    echo("\33[", $columns, "D")
-
-
-proc cls*(): void = 
-    ## Clears the screen, and move cursor to 0,0
-    echo("\33[2J")
-
-
-proc eraseline*(): void =
-    ## Erase the whole line (till the end of line)
-    echo("\33[2J")
-
-
-proc savepos*(): void =
-    ## Save current cursor position
-    echo("\33[s")
-
-
-proc restorepos*(): void =
-    ## Restore the saved cursor position
-    echo("\33[u")
-
-
-proc get_fg_color*(r: int, g: int, b: int): string =
-    result = "\33[38;2;" & $r & ";" & $g & ";" & $b & "m"
 
 var
     reset*      = "\x1b[0m"
@@ -94,3 +49,71 @@ var
     whitebg2*   = "\x1b[107m"
 
     orange*     = "\x1b[38;2;255;135;0m"
+    orangebg*   = "\x1b[48;2;255;135;0m"
+
+
+proc position*(line: int, column: int): void = 
+    ## Move cursor to specified position
+    stdout.write("\x1b[", $line, ";", $column, "H")
+
+
+proc toAltScreen*(): void =
+    when defined linux:
+        discard os.execShellCmd("tput smcup")
+    elif defined windows:
+        discard os.execShellCmd("cls")
+    else:
+        stdout.write(red2 & "Your Operating System is not supported!" & reset)
+
+
+proc noAltScreen*(): void =
+    when defined linux:
+        discard os.execShellCmd("tput rmcup")
+    elif defined windows:
+        discard os.execShellCmd("cls")
+    else:
+        stdout.write(red2 & "Your Operating System is not supported!" & reset)
+
+
+proc up*(lines: int): void = 
+    ## Move cursor up specified number of lines
+    stdout.write("\x1b[", $lines, "A")
+
+
+proc down*(lines: int): void = 
+    ## Move cursor down specified number of lines
+    stdout.write("\x1b[", $lines, "B")
+
+
+proc left*(columns: int): void = 
+    ## Move cursor left specified number of columns
+    stdout.write("\x1b[", $columns, "D")
+
+
+proc right*(columns: int): void =
+    ## Move cursor right specified number of columns
+    stdout.write("\x1b[", $columns, "C")
+
+
+proc cls*(): void = 
+    ## Clears the screen, and move cursor to 0,0
+    stdout.write("\x1b[H\x1b[2J")
+
+
+proc eraseline*(): void =
+    ## Erase the whole line (till the end of line)
+    stdout.write("\x1b[2J")
+
+
+proc savepos*(): void =
+    ## Save current cursor position
+    stdout.write("\x1b[s")
+
+
+proc restorepos*(): void =
+    ## Restore the saved cursor position
+    stdout.write("\x1b[u")
+
+
+proc get_fg_color*(r: int, g: int, b: int): string =
+    result = "\x1b[38;2;" & $r & ";" & $g & ";" & $b & "m"
