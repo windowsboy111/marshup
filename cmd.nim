@@ -161,6 +161,7 @@ proc process_command*(cmd: string): string {.discardable.} =
 
 
 proc get_cmd*(): string =
+    colors.setchMode()
     var 
         c: char
         res: string = ""
@@ -169,12 +170,12 @@ proc get_cmd*(): string =
     colors.savepos()
     stdout.write("> ")
     while true:
-        c = terminal.getch()
+        c = stdin.readChar()
         case c
         of '\t', '\f':
             if res.substr(res.len - pos - 1, res.len - pos) != " " and res.len != 0:
                 res += " "
-            res += choose()
+            res += choose().splitPath()[1]
             if pos > 0 and res.substr(res.len - pos, res.len - pos + 1) != " ":
                 res += " "
             colors.restorepos()
@@ -183,40 +184,56 @@ proc get_cmd*(): string =
             continue
         of '\n', '\r':
             echo ""
+            terminal.eraseLine()
+            terminal.setCursorXPos(0)
+            colors.nrmlMode()
+            res = res.trim()
             return res
         of '\127':  # backspace
             if res.len != pos:
-                res = res.substr(1, res.len - 1)
+                res = res.substr(1, res.len - 2)
                 stdout.write("\b \b")
             else:
-                res = res.substr(0, res.len - 1 - pos) & res.substr(res.len - pos)
+                res = res.substr(0, res.len - 2 - pos) & res.substr(res.len - pos)
             continue
         of '\8':  # delete
             if res != "" and pos > 0:
-                res = res.substr(0, res.len - pos) & res.substr(res.len - pos + 1)
+                res = res.substr(0, res.len - pos - 1) & res.substr(res.len - pos + 1)
                 dec pos
                 terminal.eraseLine()
                 stdout.write("> " & res)
                 continue
-        of '\x1b':
-            c = terminal.getch()
-            if c == '[':
-                c = terminal.getch()
-                case c
-                    of 'D':  # left
-                        if res.len != pos:
-                            colors.left(1)
-                            pos += 1
-                        continue
-                    of 'C':  # right
-                        if pos > 0:
-                            colors.right(1)
-                            pos -= 1
-                        continue
-                    else: stdout.write c
+        of '\72':  # up
+            discard
+        of '\80':  # down
+            discard
+        of '\75':  # left
+            if res.len != pos:
+                colors.left(1)
+                pos += 1
+            continue
+        of '\77':  # right
+            if pos > 0:
+                colors.right(1)
+                pos -= 1
+            continue
+        of '\x1b':  # esc
+            discard stdin.readChar()
+            c = stdin.readChar()
+            case c
+            of 'D':  # left
+                if res.len > pos:
+                    colors.left(1)
+                    pos += 1
+                continue
+            of 'C':  # right
+                if pos > 0:
+                    colors.right(1)
+                    pos -= 1
                 continue
             else:
-                stdout.write c
+                discard
+            continue
         else:  # write the char to stdout
             colors.restorepos()
             if pos == 0:
@@ -227,9 +244,10 @@ proc get_cmd*(): string =
             elif pos > 0:
                 var index: int = res.len - pos
                 var 
-                    start: string = res.substr(0, index)
+                    start: string = res.substr(0, index - 1)
                     finish: string = res.substr(index)
                 res = start & c & finish
                 terminal.eraseLine()
                 terminal.setCursorXPos(0)
                 stdout.write("> " & res)
+                stdout.write("\x1b[D" * pos)

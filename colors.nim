@@ -1,4 +1,5 @@
 import os
+import termios
 
 
 var
@@ -50,6 +51,47 @@ var
 
     orange*     = "\x1b[38;2;255;135;0m"
     orangebg*   = "\x1b[48;2;255;135;0m"
+
+
+proc setRaw(fd: FileHandle, time: cint = TCSAFLUSH) =
+    var mode: Termios
+    discard fd.tcGetAttr(addr mode)
+    mode.c_iflag = mode.c_iflag and not Cflag(BRKINT or ICRNL or INPCK or
+        ISTRIP or IXON)
+    mode.c_oflag = mode.c_oflag and not Cflag(OPOST)
+    mode.c_cflag = (mode.c_cflag and not Cflag(CSIZE or PARENB)) or CS8
+    mode.c_lflag = mode.c_lflag and not Cflag(ECHO or ICANON or IEXTEN or ISIG)
+    mode.c_cc[VMIN] = 1.cuchar
+    mode.c_cc[VTIME] = 0.cuchar
+    discard fd.tcSetAttr(time, addr mode)
+
+
+var
+    oldMode: Termios
+    fd = getFileHandle(stdin)
+
+proc setchMode*(): void =
+    when not defined(windows):
+        discard fd.tcGetAttr(addr oldMode)
+        fd.setRaw()
+
+proc nrmlMode*(): void =
+    when not defined(windows):
+        discard fd.tcSetAttr(TCSADRAIN, addr oldMode)
+
+proc getch*(): char =
+    when defined(windows):
+        let fd = getStdHandle(STD_INPUT_HANDLE)
+        var keyEvent = KEY_EVENT_RECORD()
+        var numRead: cint
+        while true:
+        # Block until character is entered
+            doAssert(waitForSingleObject(fd, INFINITE) == WAIT_OBJECT_0)
+            doAssert(readConsoleInput(fd, addr(keyEvent), 1, addr(numRead)) != 0)
+            if numRead == 0 or keyEvent.eventType != 1 or keyEvent.bKeyDown == 0:
+                continue
+            return char(keyEvent.uChar)
+    return stdin.readChar()
 
 
 proc position*(line: int, column: int): void = 
