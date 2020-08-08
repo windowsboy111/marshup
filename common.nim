@@ -34,6 +34,41 @@ proc `++`*(num: var any): any {.discardable.} =
     return num
 
 
+proc `@`*[T](item: T, iter: openArray[T]): int =
+    ## Returns the index of `item` in `iter`  
+    ## If `item` is not in `iter`, returns -1.
+    var i: int = 0
+    for value in iter:
+        if value == item:
+            return i
+        inc i
+    return -1
+proc `@`*[T](key: T, str: T): int =
+    ## Returns the index of `key` in `str`  
+    ## If `key` is not in `str`, returns -1
+    for i in iterCount(str.len):
+        if key == str.substr(i, i + key.len):
+            return i
+    return -1
+
+template `!@`*[T](item: T, iter: openArray[T]): bool =
+    ## Returns `true` if `item` is not in `iter` or else `false`  
+    ## Equivalant of: `(item @ iter) == -1`
+    `@`(item, iter) == -1
+template `!@`*[T](key: T, str: T): bool =
+    ## Returns `true` if `key` is not in `str` or else `false`  
+    ## Equivalant of: `(key @ str) == -1`
+    `@`(key, str) == -1
+
+template `!!@`*[T](item: T, iter: openArray[T]): bool =
+    ## Returns `true` if `item` is in `iter` or else `false`  
+    ## Equivalant of: `(item @ iter) != -1`
+    (item @ iter) != -1
+template `!!@`*[T](key: T, str: T): bool =
+    ## Returns `true` if `key` is in `str` or else `false`  
+    ## Equivalant of: `(key @ str) != -1`
+    (key @ str) != -1
+
 proc startswith*(str: string, keyword: string): bool =
     keyword == str.substr(0, keyword.len - 1)
 
@@ -88,3 +123,6 @@ proc trim*(str: string): string =
     while str.endswith(" "):
         str = str.substr(0, str.len - 1)
     return str
+
+if "a" !@ "abc":
+    discard

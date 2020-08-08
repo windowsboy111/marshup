@@ -119,22 +119,26 @@ proc noAltScreen*(): void =
 
 proc up*(lines: int): void = 
     ## Move cursor up specified number of lines
-    stdout.write("\x1b[", $lines, "A")
+    if lines != 0:
+        stdout.write("\x1b[", $lines, "A")
 
 
 proc down*(lines: int): void = 
     ## Move cursor down specified number of lines
-    stdout.write("\x1b[", $lines, "B")
+    if lines != 0:
+        stdout.write("\x1b[", $lines, "B")
 
 
 proc left*(columns: int): void = 
     ## Move cursor left specified number of columns
-    stdout.write("\x1b[", $columns, "D")
+    if columns != 0:
+        stdout.write("\x1b[", $columns, "D")
 
 
 proc right*(columns: int): void =
     ## Move cursor right specified number of columns
-    stdout.write("\x1b[", $columns, "C")
+    if columns != 0:
+        stdout.write("\x1b[", $columns, "C")
 
 
 proc cls*(): void = 
